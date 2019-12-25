@@ -14,10 +14,10 @@ class ExportGMSSprite(Operator, ExportHelper):
     bl_options = {'PRESET'}
 
     # ExportHelper mixin class uses this
-    filename_ext = ".png"
+    filename_ext = ".yy"
 
     filter_glob = StringProperty(
-            default="*.png",
+            default="*.yy",
             options={'HIDDEN'},
             maxlen=255,  # Max internal buffer length, longer would be clamped.
             )
@@ -56,8 +56,85 @@ class ExportGMSSprite(Operator, ExportHelper):
         default='OPT_A',
         )
     
+    def new_uuid(self):
+        from uuid import uuid4
+        return str(uuid4())
+    
+    def __init__(self):
+        self.json = {
+            "id": "d671dc7b-50b7-4bfe-b2fe-370ca5b18fc0",
+            "modelName": "GMSprite",
+            "mvc": "1.12",
+            "name": "sprite2",
+            "For3D": False,
+            "HTile": False,
+            "VTile": False,
+            "bbox_bottom": 54,
+            "bbox_left": 13,
+            "bbox_right": 56,
+            "bbox_top": 5,
+            "bboxmode": 0,
+            "colkind": 1,
+            "coltolerance": 0,
+            "edgeFiltering": False,
+            "frames": [
+                {
+                    "id": "ebe129d7-b8a0-47ef-9b3a-e12b480173b6",
+                    "modelName": "GMSpriteFrame",
+                    "mvc": "1.0",
+                    "SpriteId": "d671dc7b-50b7-4bfe-b2fe-370ca5b18fc0",
+                    "compositeImage": {
+                        "id": "7fcfd130-33a6-4f98-86e1-8c8c418ae13f",
+                        "modelName": "GMSpriteImage",
+                        "mvc": "1.0",
+                        "FrameId": "ebe129d7-b8a0-47ef-9b3a-e12b480173b6",
+                        "LayerId": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "images": [
+                        {
+                            "id": "c91623b6-67ce-4a92-b1c9-12aca8613f14",
+                            "modelName": "GMSpriteImage",
+                            "mvc": "1.0",
+                            "FrameId": "ebe129d7-b8a0-47ef-9b3a-e12b480173b6",
+                            "LayerId": "ffc7bbc9-fdd0-495c-a06b-4895ce34a231"
+                        }
+                    ]
+                }
+            ],
+            "gridX": 0,
+            "gridY": 0,
+            "height": 64,
+            "layers": [
+                {
+                    "id": "ffc7bbc9-fdd0-495c-a06b-4895ce34a231",
+                    "modelName": "GMImageLayer",
+                    "mvc": "1.0",
+                    "SpriteId": "d671dc7b-50b7-4bfe-b2fe-370ca5b18fc0",
+                    "blendMode": 0,
+                    "isLocked": False,
+                    "name": "default",
+                    "opacity": 100,
+                    "visible": True
+                }
+            ],
+            "origin": 9,
+            "originLocked": False,
+            "playbackSpeed": 15,
+            "playbackSpeedType": 0,
+            "premultiplyAlpha": False,
+            "sepmasks": False,
+            "swatchColours": None,
+            "swfPrecision": 2.525,
+            "textureGroupId": "1225f6b0-ac20-43bd-a82e-be73fa0b6f4f",
+            "type": 0,
+            "width": 64,
+            "xorig": 53,
+            "yorig": 48
+        }
+    
     def execute(self, context):
         fname = self.filepath
+        import json
 
         # This'll be our object and render camera
         obj = context.object
@@ -112,11 +189,62 @@ class ExportGMSSprite(Operator, ExportHelper):
 
         obj_cam.location = (cam_x, cam_y, 0)
         obj_cam.location.z = obj.dimensions.y * .5
-
-        # Render the thing
+        
+        # Modify json data
+        sprite_id = self.new_uuid()
+        frame_id = self.new_uuid()
+        layer_id = self.new_uuid()
+        compo_id = self.new_uuid()
+        img_id = self.new_uuid()
+        
+        # Write json data to file
+        from os import path, mkdir, chdir
+        base_path = path.split(fname)[0]
+        chdir(base_path)
+        
+        base = path.basename(fname)
+        asset_name, ext = path.splitext(base)
+        print(asset_name)
+        print(base_path)
+        
+        self.json["id"] = sprite_id
+        self.json["name"] = asset_name
+        self.json["width"] = r.resolution_x
+        self.json["height"] = r.resolution_y
+        frame = self.json["frames"][0]
+        frame["id"] = frame_id
+        frame["SpriteId"] = sprite_id
+        frame["compositeImage"]["FrameId"] = frame_id
+        frame["compositeImage"]["id"] = compo_id
+        
+        layer = self.json["layers"][0]
+        layer["Sprite_id"] = sprite_id
+        layer["id"] = layer_id
+        
+        img_data = frame["images"][0]
+        img_data["FrameId"] = frame_id
+        img_data["LayerId"] = layer_id
+        img_data["id"] = img_id
+        
+        mkdir(asset_name)
+        chdir(asset_name)
+        
+        f = open(asset_name + ".yy", "w")
+        json.dump(self.json, f)
+        f.close()
+        
         bpy.ops.render.render()
-
-        bpy.data.images['Render Result'].save_render(fname)
+        bpy.data.images['Render Result'].save_render(frame_id + ".png")
+        
+        mkdir("layers")
+        chdir("layers")
+        
+        mkdir(frame_id)
+        chdir(frame_id)
+        
+        bpy.data.images['Render Result'].save_render(layer_id + ".png")
+        
+        #mkdir()
         
         return {'FINISHED'}
 
@@ -138,6 +266,3 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-
-    # test call
-    bpy.ops.export_gms.sprite('INVOKE_DEFAULT')
