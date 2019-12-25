@@ -47,14 +47,6 @@ class ExportGMSSprite(Operator, ExportHelper):
         description="Edge Filtering",
         default=False,
         )
-
-    type = EnumProperty(
-        name="Example Enum",
-        description="Choose between two items",
-        items=(('OPT_A', "First Option", "Description one"),
-               ('OPT_B', "Second Option", "Description two")),
-        default='OPT_A',
-        )
     
     def new_uuid(self):
         from uuid import uuid4
@@ -211,6 +203,16 @@ class ExportGMSSprite(Operator, ExportHelper):
         self.json["name"] = asset_name
         self.json["width"] = r.resolution_x
         self.json["height"] = r.resolution_y
+        
+        self.json["edgeFiltering"] = self.edge_filtering
+        self.json["HTile"] = self.tile_horizontally
+        self.json["VTile"] = self.tile_vertically
+        self.json["premultiplyAlpha"] = self.premultiply_alpha
+        
+        from math import floor
+        self.json["xorig"] = floor(origin_x)
+        self.json["yorig"] = floor(origin_y)
+        
         frame = self.json["frames"][0]
         frame["id"] = frame_id
         frame["SpriteId"] = sprite_id
@@ -244,7 +246,8 @@ class ExportGMSSprite(Operator, ExportHelper):
         
         bpy.data.images['Render Result'].save_render(layer_id + ".png")
         
-        #mkdir()
+        chdir("..")
+        chdir("..")
         
         return {'FINISHED'}
 
