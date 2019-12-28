@@ -48,11 +48,55 @@ class ExportGMSSprite(Operator, ExportHelper):
         default=False,
         )
     
+    def add_frame(self):
+        """Add a new frame to the json description"""
+        spr_id = self.json["id"]
+        fr_id = self.new_uuid()
+        frame = {
+            "id": fr_id,
+            "modelName": "GMSpriteFrame",
+            "mvc": "1.0",
+            "SpriteId": spr_id,
+            "compositeImage": {
+                "id": self.new_uuid(),
+                "modelName": "GMSpriteImage",
+                "mvc": "1.0",
+                "FrameId": fr_id,
+                "LayerId": "00000000-0000-0000-0000-000000000000"
+            },
+            "images": [
+                {
+                    "id": self.new_uuid(),
+                    "modelName": "GMSpriteImage",
+                    "mvc": "1.0",
+                    "FrameId": fr_id,
+                    "LayerId": self.json["layers"][0]["id"]
+                }
+            ]
+        }
+        self.json["frames"].append(frame)
+    
+    def add_layer(self,name="default"):
+        """Add a new layer to the json description"""
+        layer = {
+            "id": self.new_uuid(),
+            "modelName": "GMImageLayer",
+            "mvc": "1.0",
+            "SpriteId": self.json["id"],
+            "blendMode": 0,
+            "isLocked": False,
+            "name": name,
+            "opacity": 100,
+            "visible": True
+        }
+        self.json["layers"].append(layer)
+    
     def new_uuid(self):
         from uuid import uuid4
         return str(uuid4())
     
     def __init__(self):
+        """Initiate json data of this instance"""
         self.json = {
             "id": "d671dc7b-50b7-4bfe-b2fe-370ca5b18fc0",
             "modelName": "GMSprite",
@@ -69,45 +113,11 @@ class ExportGMSSprite(Operator, ExportHelper):
             "colkind": 1,
             "coltolerance": 0,
             "edgeFiltering": False,
-            "frames": [
-                {
-                    "id": "ebe129d7-b8a0-47ef-9b3a-e12b480173b6",
-                    "modelName": "GMSpriteFrame",
-                    "mvc": "1.0",
-                    "SpriteId": "d671dc7b-50b7-4bfe-b2fe-370ca5b18fc0",
-                    "compositeImage": {
-                        "id": "7fcfd130-33a6-4f98-86e1-8c8c418ae13f",
-                        "modelName": "GMSpriteImage",
-                        "mvc": "1.0",
-                        "FrameId": "ebe129d7-b8a0-47ef-9b3a-e12b480173b6",
-                        "LayerId": "00000000-0000-0000-0000-000000000000"
-                    },
-                    "images": [
-                        {
-                            "id": "c91623b6-67ce-4a92-b1c9-12aca8613f14",
-                            "modelName": "GMSpriteImage",
-                            "mvc": "1.0",
-                            "FrameId": "ebe129d7-b8a0-47ef-9b3a-e12b480173b6",
-                            "LayerId": "ffc7bbc9-fdd0-495c-a06b-4895ce34a231"
-                        }
-                    ]
-                }
-            ],
+            "frames": [],
             "gridX": 0,
             "gridY": 0,
             "height": 64,
             "layers": [
-                {
-                    "id": "ffc7bbc9-fdd0-495c-a06b-4895ce34a231",
-                    "modelName": "GMImageLayer",
-                    "mvc": "1.0",
-                    "SpriteId": "d671dc7b-50b7-4bfe-b2fe-370ca5b18fc0",
-                    "blendMode": 0,
-                    "isLocked": False,
-                    "name": "default",
-                    "opacity": 100,
-                    "visible": True
-                }
             ],
             "origin": 9,
             "originLocked": False,
@@ -213,20 +223,11 @@ class ExportGMSSprite(Operator, ExportHelper):
         self.json["xorig"] = floor(origin_x)
         self.json["yorig"] = floor(origin_y)
         
-        frame = self.json["frames"][0]
-        frame["id"] = frame_id
-        frame["SpriteId"] = sprite_id
-        frame["compositeImage"]["FrameId"] = frame_id
-        frame["compositeImage"]["id"] = compo_id
+        # Add at least one layer
+        self.add_layer("BlenderLayer")
         
-        layer = self.json["layers"][0]
-        layer["Sprite_id"] = sprite_id
-        layer["id"] = layer_id
-        
-        img_data = frame["images"][0]
-        img_data["FrameId"] = frame_id
-        img_data["LayerId"] = layer_id
-        img_data["id"] = img_id
+        # Add a single frame
+        self.add_frame()
         
         mkdir(asset_name)
         chdir(asset_name)
